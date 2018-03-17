@@ -1,0 +1,8 @@
+{
+  "hostname": "192.168.178.2",
+  "port": "10389",
+  "bindUser": "cn=root,dc=privatesquare,dc=in",
+  "baseDN": "dc=privatesquare,dc=in",
+  "userBaseDN": "ou=users,dc=privatesquare,dc=in",
+  "groupBaseDN": "ou=groups,dc=privatesquare,dc=in"
+}
