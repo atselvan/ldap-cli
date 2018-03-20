@@ -18,6 +18,8 @@
 ./ldap-cli -addUser -uid C00011 -cn User -sn Eleven -mail something@privatesquare.in -password welcome
 ./ldap-cli -addUser -uid C00012 -cn User -sn Twelve -mail something@privatesquare.in -password welcome
 
+./ldap-cli -deleteUser
+./ldap-cli -deleteUser -uid C00000
 
 ./ldap-cli -deleteUser -uid C00011
 ./ldap-cli -deleteUser -uid C00012
