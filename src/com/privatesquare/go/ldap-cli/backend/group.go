@@ -36,7 +36,7 @@ func AddGroup(l *ldap.Conn, ldapConn m.LDAPConn, cn, ou, memberId string) {
 	}
 	if memberId == "" {
 		memberId = "NO_SUCH_USER"
-	}else{
+	} else {
 		if !UserExists(l, ldapConn, memberId) {
 			log.Printf("Group %s could not be created because the user %s does not exist\n", cn, memberId)
 			os.Exit(1)
@@ -87,7 +87,14 @@ func GetGroupMembers(l *ldap.Conn, ldapConn m.LDAPConn, cn, ou string) []string 
 	if err != nil {
 		log.Fatal(err)
 	}
-	return sr.Entries[0].GetAttributeValues("uniqueMember")
+	var memberIdList []string
+	memberDnList := sr.Entries[0].GetAttributeValues("uniqueMember")
+	for _, memberDN := range memberDnList {
+		memberDN = strings.Replace(memberDN, "uid=", "", -1)
+		memberDN = strings.Replace(memberDN, ",ou=users,dc=privatesquare,dc=in", "", -1)
+		memberIdList = append(memberIdList, memberDN)
+	}
+	return memberIdList
 }
 
 func addMemberToGroup(l *ldap.Conn, ldapConn m.LDAPConn, cn, ou, memberId string) {
@@ -103,9 +110,9 @@ func addMemberToGroup(l *ldap.Conn, ldapConn m.LDAPConn, cn, ou, memberId string
 		os.Exit(1)
 	}
 	memberExists := false
-	members := GetGroupMembers(l, ldapConn, cn, ou)
-	for _, memberDN := range members {
-		if strings.Contains(memberDN, memberId) {
+	membersIdList := GetGroupMembers(l, ldapConn, cn, ou)
+	for _, uniqueMemberId := range membersIdList {
+		if uniqueMemberId == memberId {
 			memberExists = true
 		}
 	}
@@ -131,7 +138,7 @@ func AddMembersToGroup(l *ldap.Conn, ldapConn m.LDAPConn, cn, ou, memberIds stri
 		os.Exit(1)
 	}
 	membersList := strings.Split(memberIds, ",")
-	for _, member := range membersList{
+	for _, member := range membersList {
 		addMemberToGroup(l, ldapConn, cn, ou, member)
 	}
 }
@@ -149,13 +156,13 @@ func removeMemberFromGroup(l *ldap.Conn, ldapConn m.LDAPConn, cn, ou, memberId s
 		os.Exit(1)
 	}
 	memberExists := false
-	members := GetGroupMembers(l, ldapConn, cn, ou)
-	for _, memberDN := range members {
-		if strings.Contains(memberDN, memberId) {
+	membersIdList := GetGroupMembers(l, ldapConn, cn, ou)
+	for _, uniqueMemberId := range membersIdList {
+		if uniqueMemberId == memberId {
 			memberExists = true
 		}
 	}
-	if len(members) == 1{
+	if len(membersIdList) == 1 {
 		log.Printf("A group must contain atleast one member, hence cannot remove the last member of the group\n")
 		os.Exit(1)
 	}
@@ -181,7 +188,7 @@ func RemoveMembersFromGroup(l *ldap.Conn, ldapConn m.LDAPConn, cn, ou, memberIds
 		os.Exit(1)
 	}
 	membersList := strings.Split(memberIds, ",")
-	for _, member := range membersList{
+	for _, member := range membersList {
 		removeMemberFromGroup(l, ldapConn, cn, ou, member)
 	}
 }

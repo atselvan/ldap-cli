@@ -20,7 +20,7 @@ func main() {
 	removeMembers := flag.Bool("removeMembers", false, "Remove a member to a group. Required Parameter: cn, ou, memberId")
 	//parameters
 	connConfigFile := flag.String("connConfigFile", "./conf/ldap-connection.json", "Connection details of the LDAP server.")
-	bindPassword := flag.String("bindPassword", "", "LDAP bind password.")
+	bindPassword := flag.String("bindPassword", "welkom", "LDAP bind password.")
 	uid := flag.String("uid", "", "User ID")
 	cn := flag.String("cn", "", "Name")
 	sn := flag.String("sn", "", "Last Name")

@@ -1,5 +1,5 @@
 {
-  "hostname": "192.168.178.2",
+  "hostname": "10.36.11.142",
   "port": "10389",
   "bindUser": "cn=root,dc=privatesquare,dc=in",
   "baseDN": "dc=privatesquare,dc=in",
