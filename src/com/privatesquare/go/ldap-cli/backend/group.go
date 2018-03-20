@@ -91,7 +91,7 @@ func GetGroupMembers(l *ldap.Conn, ldapConn m.LDAPConn, cn, ou string) []string 
 	memberDnList := sr.Entries[0].GetAttributeValues("uniqueMember")
 	for _, memberDN := range memberDnList {
 		memberDN = strings.Replace(memberDN, "uid=", "", -1)
-		memberDN = strings.Replace(memberDN, ",ou=users,dc=privatesquare,dc=in", "", -1)
+		memberDN = strings.Replace(memberDN, fmt.Sprintf(",%s", ldapConn.UserBaseDN), "", -1)
 		memberIdList = append(memberIdList, memberDN)
 	}
 	return memberIdList
@@ -189,6 +189,33 @@ func RemoveMembersFromGroup(l *ldap.Conn, ldapConn m.LDAPConn, cn, ou, memberIds
 	}
 	membersList := strings.Split(memberIds, ",")
 	for _, member := range membersList {
+		removeMemberFromGroup(l, ldapConn, cn, ou, member)
+	}
+}
+
+func RemoveAllMembersExceptSome(l *ldap.Conn, ldapConn m.LDAPConn, cn, ou, memberIds string) {
+	if cn == "" || ou == "" || memberIds == "" {
+		log.Fatal("cn, ou and memberIds are required paramters for removing members from a group")
+	}
+	if !GroupExists(l, ldapConn, cn, ou) {
+		log.Printf("Group %s does not exist, cn or ou is incorrect\n", cn)
+		os.Exit(1)
+	}
+	var removeMembersList []string
+	existingMembersList := GetGroupMembers(l, ldapConn, cn, ou)
+	retainMembersList := strings.Split(memberIds, ",")
+	for _, member := range retainMembersList {
+		addMemberToGroup(l, ldapConn, cn, ou, member)
+		var loopList []string
+		for _, existingMember := range existingMembersList{
+			if existingMember != member {
+				loopList = append(loopList, existingMember)
+			}
+		}
+		existingMembersList = loopList
+	}
+	removeMembersList = existingMembersList
+	for _, member := range removeMembersList{
 		removeMemberFromGroup(l, ldapConn, cn, ou, member)
 	}
 }

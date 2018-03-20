@@ -14,10 +14,11 @@ func main() {
 	//action
 	addUser := flag.Bool("addUser", false, "Add a user. Required parameters: uid,cn,sn mail, password")
 	deleteUser := flag.Bool("deleteUser", false, "Deletes a user. Required parameter: uid")
-	addGroup := flag.Bool("addGroup", false, "Add a Group. Required parameter: cn, ou. Optional parameter: memberId")
+	addGroup := flag.Bool("addGroup", false, "Add a Group. Required parameter: cn, ou. Optional parameter: memberIds")
 	deleteGroup := flag.Bool("deleteGroup", false, "Delete a Group. Required Parameter: cn, ou")
-	addMembers := flag.Bool("addMembers", false, "Add a member to a group. Required Parameter: cn, ou, memberId")
-	removeMembers := flag.Bool("removeMembers", false, "Remove a member to a group. Required Parameter: cn, ou, memberId")
+	addMembers := flag.Bool("addMembers", false, "Add a member to a group. Required Parameter: cn, ou, memberIds")
+	removeMembers := flag.Bool("removeMembers", false, "Remove a member to a group. Required Parameter: cn, ou, memberIds")
+	removeAllExceptSome := flag.Bool("removeAllExceptSome", false, "Remove all members except the memberIds input from the group. Required Parameter: cn, ou, memberIds")
 	//parameters
 	connConfigFile := flag.String("connConfigFile", "./conf/ldap-connection.json", "Connection details of the LDAP server.")
 	bindPassword := flag.String("bindPassword", "welkom", "LDAP bind password.")
@@ -56,6 +57,8 @@ func main() {
 		b.AddMembersToGroup(l, ldapConn, *cn, *ou, *memberIds)
 	}else if *removeMembers == true{
 		b.RemoveMembersFromGroup(l, ldapConn, *cn, *ou, *memberIds)
+	}else if *removeAllExceptSome == true{
+		b.RemoveAllMembersExceptSome(l, ldapConn, *cn, *ou, *memberIds)
 	}else {
 		log.Println("Select a valid action flag.")
 	}
