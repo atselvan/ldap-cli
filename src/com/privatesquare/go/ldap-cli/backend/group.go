@@ -3,10 +3,10 @@ package backend
 import (
 	"com/privatesquare/go/ldap-cli/ldap"
 	m "com/privatesquare/go/ldap-cli/model"
-	"log"
 	"fmt"
-	"strings"
+	"log"
 	"os"
+	"strings"
 )
 
 func GroupExists(l *ldap.Conn, ldapConn m.LDAPConn, cn, ou string) bool {
@@ -30,6 +30,28 @@ func GroupExists(l *ldap.Conn, ldapConn m.LDAPConn, cn, ou string) bool {
 	return isExists
 }
 
+func GetGroups(l *ldap.Conn, ldapConn m.LDAPConn, ou string) []string {
+	if ou == "" {
+		log.Fatal("ou is a required paramter for getting a list of groups")
+	}
+	searchRequest := ldap.NewSearchRequest(
+		fmt.Sprintf("ou=%s,%s", ou, ldapConn.GroupBaseDN),
+		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
+		"(&(objectClass=groupOfUniqueNames))",
+		[]string{"cn"},
+		nil,
+	)
+	sr, err := l.Search(searchRequest)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var groupsList []string
+	for _, entry := range sr.Entries {
+		groupsList = append(groupsList, entry.GetAttributeValue("cn"))
+	}
+	return groupsList
+}
+
 func AddGroup(l *ldap.Conn, ldapConn m.LDAPConn, cn, ou, memberId string) {
 	if cn == "" || ou == "" {
 		log.Fatal("cn and ou are required paramters for adding a group")
@@ -46,7 +68,7 @@ func AddGroup(l *ldap.Conn, ldapConn m.LDAPConn, cn, ou, memberId string) {
 		a := ldap.NewAddRequest(fmt.Sprintf("cn=%s,ou=%s,%s", cn, ou, ldapConn.GroupBaseDN))
 		a.Attribute("objectClass", []string{"groupOfUniqueNames", "top"})
 		a.Attribute("cn", []string{cn})
-		a.Attribute("uniqueMember", []string{fmt.Sprintf("uid=%s,ou=users,dc=privatesquare,dc=in", memberId)})
+		a.Attribute("uniqueMember", []string{fmt.Sprintf("uid=%s,%s", memberId, ldapConn.UserBaseDN)})
 		err := l.Add(a)
 		if err != nil {
 			log.Println("Group entry could not be added :", err)
@@ -151,10 +173,6 @@ func removeMemberFromGroup(l *ldap.Conn, ldapConn m.LDAPConn, cn, ou, memberId s
 		log.Printf("Group %s does not exist, cn or ou is incorrect\n", cn)
 		os.Exit(1)
 	}
-	if !UserExists(l, ldapConn, memberId) {
-		log.Printf("User %s does not exist, hence the user could not be removed from the group %s\n", memberId, cn)
-		os.Exit(1)
-	}
 	memberExists := false
 	membersIdList := GetGroupMembers(l, ldapConn, cn, ou)
 	for _, uniqueMemberId := range membersIdList {
@@ -205,9 +223,8 @@ func RemoveAllMembersExceptSome(l *ldap.Conn, ldapConn m.LDAPConn, cn, ou, membe
 	existingMembersList := GetGroupMembers(l, ldapConn, cn, ou)
 	retainMembersList := strings.Split(memberIds, ",")
 	for _, member := range retainMembersList {
-		addMemberToGroup(l, ldapConn, cn, ou, member)
 		var loopList []string
-		for _, existingMember := range existingMembersList{
+		for _, existingMember := range existingMembersList {
 			if existingMember != member {
 				loopList = append(loopList, existingMember)
 			}
@@ -215,7 +232,22 @@ func RemoveAllMembersExceptSome(l *ldap.Conn, ldapConn m.LDAPConn, cn, ou, membe
 		existingMembersList = loopList
 	}
 	removeMembersList = existingMembersList
-	for _, member := range removeMembersList{
+	for _, member := range removeMembersList {
 		removeMemberFromGroup(l, ldapConn, cn, ou, member)
+	}
+}
+func DeleteUserfromAllGroups(l *ldap.Conn, ldapConn m.LDAPConn, uid string) {
+	ToolsList := [...]string{"bitbucket", "hudson", "nexus", "nexusIQ", "sccm", "sonar", "Fortify", "subversion"}
+	//ToolsList := [...]string{"Fortify","subversion"}
+	for _, tools := range ToolsList {
+		list := GetGroups(l, ldapConn, tools)
+		for _, Group := range list {
+			membersIdList := GetGroupMembers(l, ldapConn, Group, tools)
+			for _, uniqueMemberId := range membersIdList {
+				if uniqueMemberId == uid {
+					removeMemberFromGroup(l, ldapConn, Group, tools, uid)
+				}
+			}
+		}
 	}
 }

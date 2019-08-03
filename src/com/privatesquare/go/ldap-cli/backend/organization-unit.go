@@ -1,13 +1,13 @@
 package backend
 
-func OrganizationUnitExists(){
+func OrganizationUnitExists() {
 
 }
 
-func AddOrganizationUnit(){
+func AddOrganizationUnit() {
 
 }
 
-func DeleteOrganizationUnit(){
+func DeleteOrganizationUnit() {
 
 }
